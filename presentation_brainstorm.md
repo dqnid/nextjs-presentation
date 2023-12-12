@@ -1,4 +1,4 @@
-## Server components
+## Server components [Nextjs docs](https://nextjs.org/docs/app/building-your-application/rendering/server-components)
 
 ## Presentation flow
 1. Introduction without strategies.
@@ -32,17 +32,55 @@ strategies:
 The rendering works is split into chunks:
 
 - By individual route segments
-- By React Suspense boundaries (react way of having a fallback while a
+- By React [Suspense boundaries](https://react.dev/reference/react/Suspense) (react way of having a fallback while a
   components has finished loading) Each chunk is rendered in the server, then,
   on the client:
 
 1. The HTML is used to immediately show fast preview.
 2. The server components rendered are inserted to update the DOM (components
    rendered in server with placeholders for client components and props).
-3. `JS` instructions are used to hydrate? Client Components and make the
+3. `JS` instructions are used to [hydrate?](https://react.dev/reference/react-dom/client/hydrateRoot) Client Components and make the
    application interactive.
 
 ### Strategies
 
-- Static rendering
+- Static rendering (default) -> Good for static pages: Rendered in build time or in the background after data revalidation
+- Dynamic rendering: rendered per user request, Next uses this type of rendering automatically when discovers a dynamic function (`cookies()`, `headers()`, `userSearchParams()`).
+- Streaming: work is split into chunks and streamed as they become ready so the load is progressive.
 
+### [Fetching data from the server](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#revalidating-data)
+To fetch data from the server you only need an `async` component. The data is automatically cached by Next to avoid constant calls to the data source. This means you can omit the cache configuration in your fetch call: 
+```js
+// not needed 
+fetch('https:...', { cache: 'force-cache' })
+```
+But you can also revalidate on every request:
+```js
+fetch('https://...', { cache: 'no-store' })
+```
+
+#### Revalidation
+
+Revalidation is not directly managed but you can force it with:
+- A timer:
+```js
+fetch('https://...', { next: { revalidate: 3600 } })
+```
+- Manually:
+```js
+// page.tsx file
+export default async function Page() {
+  const res = await fetch('https://...', { next: { tags: ['collection'] } })
+  const data = await res.json()
+  // ...
+}
+
+// action.ts file
+'use server' // cause of the .ts
+import { revalidateTag } from 'next/cache'
+ 
+export default async function action() {
+  revalidateTag('collection')
+}
+
+```
